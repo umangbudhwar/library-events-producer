@@ -10,6 +10,9 @@ import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Component
 @Slf4j
@@ -32,5 +35,21 @@ public class LibraryEventProducer {
             log.error("Error Sending the Message and the exception is {}", throwable.getMessage());
             return null;
         });
+    }
+
+    public SendResult<Integer, String> sendLibraryEventSynchronous(LibraryEvent libraryEvent) throws JsonProcessingException, ExecutionException, InterruptedException, TimeoutException {
+        Integer key = libraryEvent.getLibraryEventId();
+        String value = objectMapper.writeValueAsString(libraryEvent);
+        SendResult<Integer, String> sendResult = null;
+        try {
+            sendResult = kafkaTemplate.sendDefault(key, value).get(1, TimeUnit.SECONDS);
+        } catch (ExecutionException | InterruptedException e) {
+            log.error("ExecutionException/InterruptedException Sending the Message and the exception is {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Exception Sending the Message and the exception is {}", e.getMessage());
+            throw e;
+        }
+        return sendResult;
     }
 }
