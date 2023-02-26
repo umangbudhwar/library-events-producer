@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.learnkafka.domain.LibraryEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
@@ -18,6 +19,7 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class LibraryEventProducer {
 
+    private final String topic = "library-events";
     @Autowired
     private KafkaTemplate<Integer, String> kafkaTemplate;
 
@@ -35,6 +37,24 @@ public class LibraryEventProducer {
             log.error("Error Sending the Message and the exception is {}", throwable.getMessage());
             return null;
         });
+    }
+
+    public void sendLibraryEvent_Approach2(LibraryEvent libraryEvent) throws JsonProcessingException {
+        Integer key = libraryEvent.getLibraryEventId();
+        String value = objectMapper.writeValueAsString(libraryEvent);
+
+        ProducerRecord<Integer, String> producerRecord = buildProducerRecord(key, value, topic);
+        CompletableFuture<SendResult<Integer, String>> completableFuture = kafkaTemplate.send(producerRecord);
+        completableFuture.thenAccept(sendResult -> {
+            log.info("Message Sent Successfully for the key : {} and the value is {}, partition is {}", key, value, sendResult.getRecordMetadata().partition());
+        }).exceptionally(throwable -> {
+            log.error("Error Sending the Message and the exception is {}", throwable.getMessage());
+            return null;
+        });
+    }
+
+    private ProducerRecord<Integer, String> buildProducerRecord(Integer key, String value, String topic) {
+        return new ProducerRecord<>(topic, null, key, value, null);
     }
 
     public SendResult<Integer, String> sendLibraryEventSynchronous(LibraryEvent libraryEvent) throws JsonProcessingException, ExecutionException, InterruptedException, TimeoutException {
