@@ -42,7 +42,7 @@ public class LibraryEventProducer {
         });
     }
 
-    public void sendLibraryEvent_Approach2(LibraryEvent libraryEvent) throws JsonProcessingException {
+    public CompletableFuture<SendResult<Integer, String>> sendLibraryEvent_Approach2(LibraryEvent libraryEvent) throws JsonProcessingException {
         Integer key = libraryEvent.getLibraryEventId();
         String value = objectMapper.writeValueAsString(libraryEvent);
 
@@ -54,6 +54,8 @@ public class LibraryEventProducer {
             log.error("Error Sending the Message and the exception is {}", throwable.getMessage());
             return null;
         });
+
+        return completableFuture;
     }
 
     private ProducerRecord<Integer, String> buildProducerRecord(Integer key, String value, String topic) {
